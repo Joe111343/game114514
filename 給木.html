@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>多人2D射擊遊戲</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; overflow: hidden; background: #000;
+    }
+    canvas {
+      display: block; background: #222; touch-action: none;
+    }
+    #loadingScreen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #000; display: flex; justify-content: center; align-items: center;
+      z-index: 999; transition: opacity 1s;
+      user-select: none;
+    }
+    #loadingScreen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #loadingVideo {
+      max-width: 90%; max-height: 90%;
+      border-radius: 8px;
+      box-shadow: 0 0 20px #0f0;
+    }
+    #ui {
+      position: fixed;
+      top: 10px; left: 10px;
+      color: #fff;
+      background: rgba(0,0,0,0.6);
+      padding: 10px;
+      border-radius: 8px;
+      font-family: sans-serif;
+      z-index: 10;
+      width: 280px;
+    }
+    input, button, select {
+      font-size: 14px;
+      margin-top: 5px;
+      width: 100%;
+      padding: 5px;
+      border-radius: 4px;
+      border: none;
+      outline: none;
+    }
+    button {
+      background: #0a0;
+      color: #eee;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div id="loadingScreen">
+    <video id="loadingVideo" muted playsinline>
+      <source src="loading.mp4" type="video/mp4" />
+      您的瀏覽器不支援影片播放。
+    </video>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="ui">
+    <div>你的 ID: <span id="peerIdDisplay">載入中...</span></div>
+    <div>身份: <span id="roleDisplay">載入中...</span></div>
+    <select id="colorSelect">
+      <option value="lime" selected>綠色</option>
+      <option value="red">紅色</option>
+      <option value="blue">藍色</option>
+    </select>
+    <input type="text" id="connectInput" placeholder="輸入對方ID" maxlength="3" autocomplete="off" />
+    <button id="connectBtn">連線</button>
+    <button id="voiceToggleBtn" disabled>開啟麥克風</button>
+    <div id="status">未連線</div>
+    <div id="voiceStatus">語音未開啟</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const loadingScreen = document.getElementById('loadingScreen');
+    const loadingVideo = document.getElementById('loadingVideo');
+
+    const peerIdDisplay = document.getElementById('peerIdDisplay');
+    const roleDisplay = document.getElementById('roleDisplay');
+    const connectInput = document.getElementById('connectInput');
+    const connectBtn = document.getElementById('connectBtn');
+    const statusDisplay = document.getElementById('status');
+    const voiceStatus = document.getElementById('voiceStatus');
+    const colorSelect = document.getElementById('colorSelect');
+    const voiceToggleBtn = document.getElementById('voiceToggleBtn');
+
+    let localPlayer = {
+      id: '',
+      x: 0,
+      y: 0,
+      angle: 0,
+      color: 'lime',
+      hp: 2000,
+      bullets: [],
+      moveTarget: null,
+      isAlive: true
+    };
+
+    let remotePlayers = {};
+    let enemies = [];
+    let particles = []; // 新增：粒子陣列
+    let peer, conn, call;
+    let localStream = null;
+    let audioTrack = null;
+    let isVoiceOn = false;
+
+    let isHost = false;
+
+    let lastEnemySpawnTime = 0;
+    const ENEMY_SPAWN_INTERVAL = 3000;
+    const ENEMY_SPEED = 1.5;
+    const ENEMY_HP = 10;
+    const PLAYER_HIT_DAMAGE = 1; // 調整為實際傷害，原為 1，但血量是 2000，可能太低
+
+    // 鍵盤狀態追蹤
+    const keysPressed = {};
+    const PLAYER_SPEED = 3; // 玩家移動速度
+
+    // Web Audio API 上下文
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // 聲音效果函數
+    function playShootSound() {
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, audioCtx.currentTime); // 頻率
+      oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1); // 下降
+      gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3); // 快速衰減
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function playHitSound() {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(300, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function playEnemyDeathSound() {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(60, audioCtx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(1, audioCtx.currentTime + 0.5);
+        gainNode.gain.setValueAtTime(0.6, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function playPlayerDamageSound() {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(150, audioCtx.currentTime);
+        oscillator.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start(audioCtx.currentTime);
+        oscillator.stop(audioCtx.currentTime + 0.2);
+    }
+
+    function playPlayerDeathSound() {
+        const whiteNoise = audioCtx.createBufferSource();
+        const bufferSize = audioCtx.sampleRate * 0.8; // 0.8 seconds of noise
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+        whiteNoise.buffer = buffer;
+
+        const gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0.8, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+
+        whiteNoise.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        whiteNoise.start(audioCtx.currentTime);
+        whiteNoise.stop(audioCtx.currentTime + 0.8);
+    }
+
+    // 粒子類別
+    class Particle {
+      constructor(x, y, color, size, velocityX, velocityY, lifespan) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.size = size;
+        this.velocityX = velocityX;
+        this.velocityY = velocityY;
+        this.lifespan = lifespan; // 粒子壽命 (幀數)
+        this.opacity = 1;
+      }
+
+      update() {
+        this.x += this.velocityX;
+        this.y += this.velocityY;
+        this.lifespan--;
+        this.opacity = this.lifespan / 60; // 假設60幀壽命，逐漸透明
+      }
+
+      draw(cx, cy) {
+        const screenX = this.x - cx + canvas.width / 2;
+        const screenY = this.y - cy + canvas.height / 2;
+
+        ctx.save();
+        ctx.globalAlpha = this.opacity;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // 生成粒子效果
+    function createParticles(x, y, count, color, minSize, maxSize, speed, lifespan) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const velocityX = Math.cos(angle) * speed * (0.5 + Math.random());
+        const velocityY = Math.sin(angle) * speed * (0.5 + Math.random());
+        const size = minSize + Math.random() * (maxSize - minSize);
+        particles.push(new Particle(x, y, color, size, velocityX, velocityY, lifespan));
+      }
+    }
+
+    // 載入動畫 - 點擊播放解除限制
+    loadingScreen.addEventListener('click', async () => {
+      try {
+        await loadingVideo.play();
+        loadingVideo.muted = false;
+        // 激活 AudioContext
+        audioCtx.resume();
+      } catch (e) {
+        console.warn('影片自動播放失敗，等待用戶手勢');
+      }
+    });
+
+    loadingVideo.onended = () => {
+      loadingScreen.classList.add('hidden');
+      initGame();
+    };
+
+    // 隨機3字ID - MODIFIED TO BE ALL LOWERCASE
+    function randomId(len = 3) {
+      const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'; // Only lowercase letters and numbers
+      let id = '';
+      for(let i=0; i<len; i++) {
+        id += chars.charAt(Math.floor(Math.random()*chars.length));
+      }
+      return id;
+    }
+
+    // 彩色格子地板
+    function drawFloor(cx, cy) {
+      const size = 100;
+      for(let x = -canvas.width; x < canvas.width * 2; x += size) {
+        for(let y = -canvas.height; y < canvas.height * 2; y += size) {
+          const worldX = x + Math.floor(cx / size) * size;
+          const worldY = y + Math.floor(cy / size) * size;
+          const colorSeed = ((Math.floor(worldX / 100) + 10000) * 999 + (Math.floor(worldY / 100) + 10000)) % 360;
+          ctx.fillStyle = `hsl(${colorSeed}, 30%, 20%)`;
+          ctx.fillRect(worldX - cx + canvas.width / 2, worldY - cy + canvas.height / 2, size, size);
+        }
+      }
+    }
+
+    // 畫玩家
+    function drawPlayer(p) {
+      // 如果玩家已死亡，則不繪製
+      if (!p.isAlive) return;
+
+      const cx = localPlayer.x;
+      const cy = localPlayer.y;
+      const x = p.x - cx + canvas.width / 2;
+      const y = p.y - cy + canvas.height / 2;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(p.angle);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.moveTo(20, 0);
+      ctx.lineTo(-10, -10);
+      ctx.lineTo(-10, 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      // 血條
+      ctx.fillStyle = 'black';
+      ctx.fillRect(x - 25, y - 30, 50, 6);
+      ctx.fillStyle = 'lime';
+      ctx.fillRect(x - 25, y - 30, 50 * (p.hp / 2000), 6); // 血條根據 2000 總血量計算
+
+      // 畫子彈
+      if(p.bullets) {
+        p.bullets.forEach(b => {
+          const bx = b.x - cx + canvas.width / 2;
+          const by = b.y - cy + canvas.height / 2;
+          ctx.beginPath();
+          ctx.arc(bx, by, 5, 0, Math.PI * 2);
+          ctx.fillStyle = 'yellow';
+          ctx.fill();
+        });
+      }
+    }
+
+    // 畫敵人
+    function drawEnemy(e) {
+      const cx = localPlayer.x;
+      const cy = localPlayer.y;
+      const x = e.x - cx + canvas.width / 2;
+      const y = e.y - cy + canvas.height / 2;
+
+      ctx.beginPath();
+      ctx.arc(x, y, 15, 0, Math.PI * 2);
+      ctx.fillStyle = e.color;
+      ctx.fill();
+
+      // 血條
+      ctx.fillStyle = 'black';
+      ctx.fillRect(x - 15, y - 25, 30, 4);
+      ctx.fillStyle = 'orange';
+      ctx.fillRect(x - 15, y - 25, 30 * (e.hp / ENEMY_HP), 4);
+    }
+
+    // 發射子彈
+    function shoot() {
+      // 只有活著的玩家才能射擊
+      if (!localPlayer.isAlive) return;
+
+      const bullet = {
+        x: localPlayer.x,
+        y: localPlayer.y,
+        angle: localPlayer.angle,
+        ownerId: localPlayer.id
+      };
+      localPlayer.bullets.push(bullet);
+      playShootSound(); // 播放射擊音效
+      if(conn && conn.open) {
+        conn.send({ type: 'shoot', bullet });
+      }
+    }
+
+    // 觸控控制 (僅用於移動，不觸發射擊)
+    let isTouching = false;
+
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      // 只有在連線建立且玩家活著時才允許觸控移動
+      if (!conn || !conn.open || !localPlayer.isAlive) return;
+
+      isTouching = true;
+      const touch = e.touches[0];
+      const tx = touch.clientX;
+      const ty = touch.clientY;
+      const dx = tx - canvas.width / 2;
+      const dy = ty - canvas.height / 2;
+      localPlayer.angle = Math.atan2(dy, dx); // 觸控時也更新角度
+      localPlayer.moveTarget = { x: localPlayer.x + dx, y: localPlayer.y + dy };
+    });
+
+    canvas.addEventListener('touchend', e => {
+      e.preventDefault();
+      isTouching = false;
+    });
+
+    // 滑鼠移動事件監聽器 (用於跟隨滑鼠)
+    canvas.addEventListener('mousemove', e => {
+      // 只有在連線建立且玩家活著時才允許滑鼠跟隨
+      if (!conn || !conn.open || !localPlayer.isAlive) return;
+
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      const dx = mouseX - canvas.width / 2;
+      const dy = mouseY - canvas.height / 2;
+      localPlayer.angle = Math.atan2(dy, dx);
+    });
+
+
+    // 鍵盤事件監聽器
+    window.addEventListener('keydown', (e) => {
+      // 只有在連線建立且玩家活著時才處理鍵盤輸入
+      if (!conn || !conn.open || !localPlayer.isAlive) return;
+
+      keysPressed[e.key.toLowerCase()] = true;
+      // 阻止滾動等預設行為
+      if (['w', 'a', 's', 'd', 'q'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+      // 如果按下 Q 鍵，觸發射擊
+      if (e.key.toLowerCase() === 'q') {
+        shoot();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      // 只有在連線建立且玩家活著時才處理鍵盤輸入
+      if (!conn || !conn.open || !localPlayer.isAlive) return;
+
+      keysPressed[e.key.toLowerCase()] = false;
+    });
+
+
+    // 遊戲邏輯更新
+    function update() {
+      // 只有活著的玩家才能移動
+      if (localPlayer.isAlive) {
+        let movedByKeyboard = false;
+        let moveX = 0;
+        let moveY = 0;
+
+        // 只有在連線建立後，且沒有觸控控制時，才檢查鍵盤輸入
+        if (conn && conn.open && !isTouching) {
+          if (keysPressed['w']) {
+            moveY -= PLAYER_SPEED;
+            movedByKeyboard = true;
+          }
+          if (keysPressed['s']) {
+            moveY += PLAYER_SPEED;
+            movedByKeyboard = true;
+          }
+          if (keysPressed['a']) {
+            moveX -= PLAYER_SPEED;
+            movedByKeyboard = true;
+          }
+          if (keysPressed['d']) {
+            moveX += PLAYER_SPEED;
+            movedByKeyboard = true;
+          }
+
+          // 正規化斜向移動速度
+          if (movedByKeyboard && moveX !== 0 && moveY !== 0) {
+            const diagonalSpeed = PLAYER_SPEED / Math.sqrt(2);
+            moveX = moveX > 0 ? diagonalSpeed : -diagonalSpeed;
+            moveY = moveY > 0 ? diagonalSpeed : -diagonalSpeed;
+          }
+        }
+
+
+        if (movedByKeyboard) {
+          localPlayer.x += moveX;
+          localPlayer.y += moveY;
+          localPlayer.moveTarget = null; // 鍵盤控制時清除觸控目標
+        } else if(localPlayer.moveTarget && conn && conn.open) { // 如果沒有鍵盤輸入，才處理觸控移動，並且確保已連線
+          const dx = localPlayer.moveTarget.x - localPlayer.x;
+          const dy = localPlayer.moveTarget.y - localPlayer.y;
+          const dist = Math.hypot(dx, dy);
+          if(dist > 2) {
+            localPlayer.x += (dx / dist) * PLAYER_SPEED;
+            localPlayer.y += (dy / dist) * PLAYER_SPEED;
+          }
+        }
+      }
+
+      // 更新子彈位置，超出1000px距離刪除
+      localPlayer.bullets.forEach(b => {
+        b.x += Math.cos(b.angle) * 10;
+        b.y += Math.sin(b.angle) * 10;
+      });
+      localPlayer.bullets = localPlayer.bullets.filter(b => Math.hypot(b.x - localPlayer.x, b.y - localPlayer.y) < 1000);
+
+
+      // 子彈與碰撞檢測 (只在本地執行自己的子彈)
+      localPlayer.bullets = localPlayer.bullets.filter(bullet => {
+        let hit = false;
+
+        // 1. 子彈與敵人碰撞檢測
+        enemies = enemies.filter(enemy => {
+          const dist = Math.hypot(bullet.x - enemy.x, bullet.y - enemy.y);
+          if (dist < 15 + 5) { // 敵人半徑15 + 子彈半徑5
+            enemy.hp -= 10; // 敵人每次受10點傷害
+            playHitSound(); // 播放擊中音效
+            createParticles(bullet.x, bullet.y, 10, 'white', 1, 3, 3, 30); // 產生子彈擊中粒子
+            hit = true;
+            if (enemy.hp <= 0) {
+              playEnemyDeathSound(); // 播放敵人死亡音效
+              createParticles(enemy.x, enemy.y, 20, 'orange', 3, 8, 5, 60); // 產生敵人死亡粒子
+              return false; // 敵人死亡
+            }
+          }
+          return true;
+        });
+
+        // 2. 子彈與遠端玩家碰撞檢測 (不能打自己人)
+        for (const remoteId in remotePlayers) {
+          const remoteP = remotePlayers[remoteId];
+          // 確保不是自己的子彈打到自己，且對方玩家活著
+          if (bullet.ownerId !== remoteP.id && remoteP.isAlive) {
+            const dist = Math.hypot(bullet.x - remoteP.x, bullet.y - remoteP.y);
+            if (dist < 20 + 5) { // 玩家半徑20 + 子彈半徑5
+              playHitSound(); // 播放擊中音效
+              createParticles(bullet.x, bullet.y, 10, 'red', 1, 3, 3, 30); // 產生子彈擊中粒子
+              hit = true;
+              // 通知對方玩家受傷
+              if (conn && conn.open) {
+                conn.send({ type: 'playerHit', targetId: remoteP.id, damage: PLAYER_HIT_DAMAGE });
+              }
+              break; // 子彈擊中一個玩家後就消失
+            }
+          }
+        }
+        return !hit; // 如果擊中任何目標，子彈消失
+      });
+
+
+      // 敵人生成 (只有主持人會執行)
+      if (isHost) {
+        const now = Date.now();
+        if (now - lastEnemySpawnTime > ENEMY_SPAWN_INTERVAL) {
+          spawnEnemy();
+          lastEnemySpawnTime = now;
+        }
+      }
+
+      // 敵人移動 (所有玩家都執行，但主持人會更新並廣播狀態)
+      enemies.forEach(enemy => {
+        let closestTarget = null;
+        let minDist = Infinity;
+
+        // 敵人優先攻擊活著的玩家
+        const players = [localPlayer, ...Object.values(remotePlayers)].filter(p => p.isAlive);
+
+        if (players.length > 0) {
+            players.forEach(player => {
+                const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestTarget = player;
+                }
+            });
+        }
+
+        if (closestTarget) {
+          const dx = closestTarget.x - enemy.x;
+          const dy = closestTarget.y - enemy.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist > 1) {
+            enemy.x += (dx / dist) * ENEMY_SPEED;
+            enemy.y += (dy / dist) * ENEMY_SPEED;
+          }
+        }
+      });
+
+      // 更新粒子
+      particles.forEach(p => p.update());
+      particles = particles.filter(p => p.lifespan > 0);
+
+      // 如果是主持人，同步敵人狀態
+      if (conn && conn.open && isHost) {
+        conn.send({ type: 'enemyUpdate', enemies: enemies.map(e => ({id: e.id, x: e.x, y: e.y, hp: e.hp})) });
+      }
+
+      // 更新語音狀態
+      if (audioTrack) {
+        audioTrack.enabled = isVoiceOn;
+      }
+    }
+
+    // 生成敵人
+    function spawnEnemy() {
+      const spawnDistance = Math.max(canvas.width, canvas.height) / 1.5;
+      const angle = Math.random() * Math.PI * 2;
+      const x = localPlayer.x + Math.cos(angle) * spawnDistance;
+      const y = localPlayer.y + Math.sin(angle) * spawnDistance;
+
+      const newEnemy = {
+        id: 'enemy_' + Date.now() + Math.random().toString(16).slice(2),
+        x: x,
+        y: y,
+        hp: ENEMY_HP,
+        color: 'purple'
+      };
+      enemies.push(newEnemy);
+    }
+
+    // 繪製遊戲畫面
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawFloor(localPlayer.x, localPlayer.y);
+
+      // 自己的玩家
+      drawPlayer(localPlayer);
+
+      // 遠端玩家
+      Object.values(remotePlayers).forEach(drawPlayer);
+
+      // 敵人
+      enemies.forEach(drawEnemy);
+
+      // 繪製粒子
+      particles.forEach(p => p.draw(localPlayer.x, localPlayer.y));
+
+      // 繪製本地玩家的子彈 (這部分由 localPlayer.bullets 管理，並在 drawPlayer 中繪製)
+      // 如果你希望敵人子彈或其他玩家的子彈顯示在本地，則需要相應的繪製邏輯
+    }
+
+    // 遊戲主迴圈
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // 初始化 PeerJS
+    function initPeer() {
+      peer = new Peer(randomId());
+      peer.on('open', id => {
+        peerIdDisplay.textContent = id;
+        localPlayer.id = id;
+        roleDisplay.textContent = '未連線';
+      });
+
+      peer.on('connection', c => {
+        conn = c;
+        setupConnection();
+        // 判斷主持人：本機ID比對方ID小，則為主持人
+        if (localPlayer.id < conn.peer) {
+          isHost = true;
+          roleDisplay.textContent = '主持人';
+        } else {
+          isHost = false;
+          roleDisplay.textContent = '客戶端';
+        }
+      });
+
+      // 接收語音通話邀請
+      peer.on('call', c => {
+        call = c;
+        call.on('stream', remoteStream => {
+          const audio = new Audio();
+          audio.srcObject = remoteStream;
+          audio.play().catch(() => {
+            console.warn('Audio autoplay was prevented.');
+          });
+          voiceStatus.textContent = '語音已連線';
+        });
+        call.on('close', () => {
+          voiceStatus.textContent = '語音已中斷';
+          if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+            audioTrack = null;
+          }
+          isVoiceOn = false;
+          voiceToggleBtn.textContent = '開啟麥克風';
+        });
+        call.on('error', err => {
+          console.error('語音通話錯誤:', err);
+          voiceStatus.textContent = '語音錯誤';
+        });
+
+        if (localStream) {
+            call.answer(localStream);
+        }
+      });
+
+      peer.on('error', err => {
+        console.error("PeerJS 錯誤:", err);
+        statusDisplay.textContent = 'PeerJS 錯誤';
+      });
+    }
+
+    // 建立 PeerJS 連線後的設定
+    function setupConnection() {
+      statusDisplay.textContent = '已連線';
+      voiceToggleBtn.disabled = false;
+
+      conn.on('data', data => {
+        if(!data || !data.type) return;
+
+        if(data.type === 'init') {
+          remotePlayers[data.player.id] = data.player;
+        } else if(data.type === 'update') {
+          if(remotePlayers[data.player.id]) {
+            // 如果收到玩家更新，但該玩家已死亡，則不再更新其位置
+            if (!remotePlayers[data.player.id].isAlive && data.player.isAlive) {
+                // 如果對方從死亡狀態恢復，則更新為活著的狀態 (例如，重置遊戲後)
+                Object.assign(remotePlayers[data.player.id], data.player);
+            } else if (remotePlayers[data.player.id].isAlive) {
+                // 只有活著的玩家才更新其位置和狀態 (除了死亡狀態)
+                Object.assign(remotePlayers[data.player.id], data.player);
+            }
+          } else {
+            remotePlayers[data.player.id] = data.player;
+          }
+        } else if(data.type === 'shoot') {
+          // 收到遠端玩家的射擊事件，播放音效和粒子
+          if(remotePlayers[data.bullet.ownerId]) {
+            remotePlayers[data.bullet.ownerId].bullets = remotePlayers[data.bullet.ownerId].bullets || [];
+            remotePlayers[data.bullet.ownerId].bullets.push(data.bullet);
+            playShootSound();
+          }
+        } else if (data.type === 'enemyUpdate') {
+          // 非主持人接收敵人的狀態並更新
+          const oldEnemies = enemies;
+          enemies = data.enemies.map(e => {
+            const existingEnemy = oldEnemies.find(exE => exE.id === e.id);
+            if (existingEnemy) {
+              // 檢查是否有敵人死亡，播放死亡音效和粒子
+              if (existingEnemy.hp > 0 && e.hp <= 0) {
+                playEnemyDeathSound();
+                createParticles(e.x, e.y, 20, 'orange', 3, 8, 5, 60);
+              }
+              return Object.assign(existingEnemy, e);
+            } else {
+              return { ...e, color: 'purple' };
+            }
+          });
+        } else if (data.type === 'playerHit') {
+            // 收到自己被擊中的通知
+            if (data.targetId === localPlayer.id) {
+                const oldHp = localPlayer.hp;
+                localPlayer.hp -= data.damage;
+                if (localPlayer.hp <= 0) {
+                    localPlayer.hp = 0;
+                    localPlayer.isAlive = false;
+                    playPlayerDeathSound(); // 播放玩家死亡音效
+                    createParticles(localPlayer.x, localPlayer.y, 50, localPlayer.color, 5, 15, 8, 90); // 產生玩家死亡粒子
+                    console.log(`你被擊敗了！`);
+                    alert('你被擊敗了！');
+                    // 清空所有移動和射擊的輸入
+                    for (const key in keysPressed) {
+                        keysPressed[key] = false;
+                    }
+                    localPlayer.moveTarget = null;
+                } else if (localPlayer.hp < oldHp) {
+                    playPlayerDamageSound(); // 播放玩家受傷音效
+                    createParticles(localPlayer.x, localPlayer.y, 15, 'red', 2, 5, 4, 45); // 產生玩家受傷粒子
+                }
+                // 同步血量給遠端玩家
+                if (conn && conn.open) {
+                    conn.send({ type: 'update', player: localPlayer });
+                }
+            }
+        }
+      });
+
+      conn.on('close', () => {
+        statusDisplay.textContent = '連線已中斷';
+        remotePlayers = {};
+        voiceToggleBtn.disabled = true;
+        if (call) {
+            call.close();
+            call = null;
+        }
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+            audioTrack = null;
+        }
+        isVoiceOn = false;
+        voiceToggleBtn.textContent = '開啟麥克風';
+        voiceStatus.textContent = '語音未開啟';
+        isHost = false;
+        roleDisplay.textContent = '未連線';
+        // 清除鍵盤按下的狀態，防止斷線後仍然保持移動
+        for (const key in keysPressed) {
+          keysPressed[key] = false;
+        }
+        // 重置本地玩家狀態 (如果斷線後想讓玩家恢復)
+        localPlayer.hp = 2000; // 重置血量
+        localPlayer.isAlive = true;
+        localPlayer.moveTarget = null;
+      });
+
+      conn.on('error', err => {
+        console.error("連線錯誤:", err);
+        statusDisplay.textContent = '連線錯誤';
+      });
+    }
+
+    // 初始化語音通話（獲取麥克風並發起通話）
+    async function initVoiceCall(targetId) {
+        try {
+            if (!localStream) {
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioTrack = localStream.getAudioTracks()[0];
+            }
+
+            if (call) {
+                call.close();
+            }
+
+            call = peer.call(targetId, localStream);
+            call.on('stream', remoteStream => {
+                const audio = new Audio();
+                audio.srcObject = remoteStream;
+                audio.play().catch(() => {
+                    console.warn('Audio autoplay was prevented.');
+                });
+                voiceStatus.textContent = '語音已連線';
+            });
+            call.on('close', () => {
+                voiceStatus.textContent = '語音已中斷';
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                    localStream = null;
+                    audioTrack = null;
+                }
+                isVoiceOn = false;
+                voiceToggleBtn.textContent = '開啟麥克風';
+            });
+            call.on('error', err => {
+                console.error('語音通話錯誤:', err);
+                voiceStatus.textContent = '語音錯誤';
+            });
+
+            isVoiceOn = true;
+            voiceToggleBtn.textContent = '關閉麥克風';
+            voiceStatus.textContent = '語音已連線';
+        } catch (err) {
+            console.error('取得麥克風失敗或通話建立失敗:', err);
+            voiceStatus.textContent = '取得麥克風失敗';
+            isVoiceOn = false;
+            voiceToggleBtn.textContent = '開啟麥克風';
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+                audioTrack = null;
+            }
+            if (call) {
+                call.close();
+                call = null;
+            }
+        }
+    }
+
+    // 切換語音開關
+    async function toggleVoice() {
+        if (!conn || !conn.open) {
+            alert('請先連線到對方！');
+            return;
+        }
+
+        if (isVoiceOn) {
+            if (audioTrack) {
+                audioTrack.enabled = false;
+            }
+            voiceStatus.textContent = '語音已關閉';
+            voiceToggleBtn.textContent = '開啟麥克風';
+            isVoiceOn = false;
+        } else {
+            if (!localStream || !audioTrack) {
+                await initVoiceCall(conn.peer);
+            } else {
+                audioTrack.enabled = true;
+                voiceStatus.textContent = '語音已連線';
+                voiceToggleBtn.textContent = '關閉麥克風';
+                isVoiceOn = true;
+            }
+        }
+    }
+
+
+    connectBtn.onclick = () => {
+      if(conn && conn.open) {
+        alert('已連線，請先斷線');
+        return;
+      }
+      const targetId = connectInput.value.trim();
+      if(!targetId) {
+        alert('請輸入對方ID');
+        return;
+      }
+      conn = peer.connect(targetId);
+      conn.on('open', () => {
+        statusDisplay.textContent = '已連線';
+        conn.send({ type: 'init', player: localPlayer });
+        voiceToggleBtn.disabled = false;
+
+        // 判斷主持人：本機ID比對方ID小，則為主持人
+        if (localPlayer.id < conn.peer) {
+          isHost = true;
+          roleDisplay.textContent = '主持人';
+        } else {
+          isHost = false;
+          roleDisplay.textContent = '客戶端';
+        }
+      });
+      setupConnection();
+    };
+
+    // 語音按鈕點擊事件
+    voiceToggleBtn.addEventListener('click', toggleVoice);
+
+    // 定期傳送自己的狀態
+    setInterval(() => {
+      if(conn && conn.open) {
+        conn.send({ type: 'update', player: {
+            id: localPlayer.id,
+            x: localPlayer.x,
+            y: localPlayer.y,
+            angle: localPlayer.angle,
+            color: localPlayer.color,
+            hp: localPlayer.hp,
+            isAlive: localPlayer.isAlive
+            // 不傳送 bullets 和 moveTarget，它們由各自的客戶端處理
+        }});
+      }
+    }, 100);
+
+    // 啟動遊戲
+    function initGame() {
+      localPlayer.x = canvas.width / 2;
+      localPlayer.y = canvas.height / 2;
+      localPlayer.color = colorSelect.value;
+      localPlayer.hp = 2000; // 確保遊戲開始時血量是滿的
+      localPlayer.isAlive = true; // 確保遊戲開始時玩家是活著的
+
+      colorSelect.onchange = () => {
+        localPlayer.color = colorSelect.value;
+      };
+
+      gameLoop();
+    }
+
+    window.onload = () => {
+      initPeer();
+    };
+
+    // 視窗調整大小
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
