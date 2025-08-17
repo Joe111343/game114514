@@ -1,0 +1,986 @@
+{
+  "chinese": [
+    {
+      "text": "嗚嘿～你在講什麼呀",
+      "score": 0
+    },
+    {
+      "text": "你好啊",
+      "score": 1
+    },
+    {
+      "text": "我覺得這個話題很有趣",
+      "score": 2
+    },
+    {
+      "text": "哈哈哈哈哈哈",
+      "score": 3
+    },
+    {
+      "text": "今天心情不錯",
+      "score": 1
+    },
+    {
+      "text": "你吃了嗎",
+      "score": 0
+    },
+    {
+      "text": "嘿",
+      "score": 0
+    },
+    {
+      "text": "是喔",
+      "score": 0
+    },
+    {
+      "text": "嗯",
+      "score": 0
+    },
+    {
+      "text": "蛤",
+      "score": 0
+    },
+    {
+      "text": "啊",
+      "score": 0
+    },
+    {
+      "text": "喔",
+      "score": 0
+    },
+    {
+      "text": "喔是喔",
+      "score": 0
+    },
+    {
+      "text": "喔對喔",
+      "score": 0
+    },
+    {
+      "text": "喔好喔",
+      "score": 0
+    },
+    {
+      "text": "沒事",
+      "score": 0
+    },
+    {
+      "text": "好啦",
+      "score": 0
+    },
+    {
+      "text": "知道了",
+      "score": 0
+    },
+    {
+      "text": "隨便啦",
+      "score": 0
+    },
+    {
+      "text": "哈哈哈",
+      "score": 0
+    },
+    {
+      "text": "哈哈哈哈",
+      "score": 0
+    },
+    {
+      "text": "哈哈哈哈哈",
+      "score": 0
+    },
+    {
+      "text": "哈哈哈哈哈哈",
+      "score": 0
+    },
+    {
+      "text": "哈哈哈哈哈哈哈哈",
+      "score": 0
+    },
+    {
+      "text": "蛤什麼意思",
+      "score": 0
+    },
+    {
+      "text": "等等",
+      "score": 0
+    },
+    {
+      "text": "我看看",
+      "score": 0
+    },
+    {
+      "text": "你說什麼",
+      "score": 0
+    },
+    {
+      "text": "沒有啦",
+      "score": 0
+    },
+    {
+      "text": "不是",
+      "score": 0
+    },
+    {
+      "text": "對",
+      "score": 0
+    },
+    {
+      "text": "沒錯",
+      "score": 0
+    },
+    {
+      "text": "好吧",
+      "score": 0
+    },
+    {
+      "text": "下次再說",
+      "score": 0
+    },
+    {
+      "text": "好啊",
+      "score": 0
+    },
+    {
+      "text": "對啊",
+      "score": 0
+    },
+    {
+      "text": "是啊",
+      "score": 0
+    },
+    {
+      "text": "我也不知道",
+      "score": 0
+    },
+    {
+      "text": "你覺得呢",
+      "score": 0
+    },
+    {
+      "text": "就這樣",
+      "score": 0
+    },
+    {
+      "text": "沒什麼",
+      "score": 0
+    },
+    {
+      "text": "嗯嗯嗯",
+      "score": 0
+    },
+    {
+      "text": "喔喔喔",
+      "score": 0
+    },
+    {
+      "text": "嘿嘿嘿",
+      "score": 0
+    },
+    {
+      "text": "嗯哼",
+      "score": 0
+    },
+    {
+      "text": "好喔",
+      "score": 0
+    },
+    {
+      "text": "恩恩",
+      "score": 0
+    },
+    {
+      "text": "阿災",
+      "score": 0
+    },
+    {
+      "text": "對齁",
+      "score": 0
+    },
+    {
+      "text": "好耶",
+      "score": 0
+    },
+    {
+      "text": "掰掰",
+      "score": 0
+    },
+    {
+      "text": "晚安",
+      "score": 0
+    },
+    {
+      "text": "早安",
+      "score": 0
+    },
+    {
+      "text": "午安",
+      "score": 0
+    },
+    {
+      "text": "辛苦了",
+      "score": 0
+    },
+    {
+      "text": "你忙嗎",
+      "score": 0
+    },
+    {
+      "text": "怎麼了",
+      "score": 0
+    },
+    {
+      "text": "幹嘛",
+      "score": 0
+    },
+    {
+      "text": "你說",
+      "score": 0
+    },
+    {
+      "text": "好了嗎",
+      "score": 0
+    },
+    {
+      "text": "沒關係",
+      "score": 0
+    },
+    {
+      "text": "嗨",
+      "score": 1
+    },
+    {
+      "text": "早上好",
+      "score": 1
+    },
+    {
+      "text": "晚安",
+      "score": 1
+    },
+    {
+      "text": "吃飽了嗎",
+      "score": 1
+    },
+    {
+      "text": "你過得好嗎",
+      "score": 1
+    },
+    {
+      "text": "最近怎麼樣",
+      "score": 1
+    },
+    {
+      "text": "天氣真好",
+      "score": 1
+    },
+    {
+      "text": "週末愉快",
+      "score": 1
+    },
+    {
+      "text": "新年快樂",
+      "score": 1
+    },
+    {
+      "text": "生日快樂",
+      "score": 1
+    },
+    {
+      "text": "辛苦了，謝謝",
+      "score": 1
+    },
+    {
+      "text": "我很好，謝謝",
+      "score": 1
+    },
+    {
+      "text": "一切都好",
+      "score": 1
+    },
+    {
+      "text": "我也覺得",
+      "score": 1
+    },
+    {
+      "text": "聽起來很棒",
+      "score": 1
+    },
+    {
+      "text": "這個想法不錯",
+      "score": 1
+    },
+    {
+      "text": "我同意",
+      "score": 1
+    },
+    {
+      "text": "沒問題",
+      "score": 1
+    },
+    {
+      "text": "可以啊",
+      "score": 1
+    },
+    {
+      "text": "當然",
+      "score": 1
+    },
+    {
+      "text": "我很樂意",
+      "score": 1
+    },
+    {
+      "text": "這很有趣",
+      "score": 1
+    },
+    {
+      "text": "聽起來很有道理",
+      "score": 1
+    },
+    {
+      "text": "我了解了",
+      "score": 1
+    },
+    {
+      "text": "謝謝你的分享",
+      "score": 1
+    },
+    {
+      "text": "我很期待",
+      "score": 1
+    },
+    {
+      "text": "祝你有個美好的一天",
+      "score": 1
+    },
+    {
+      "text": "加油",
+      "score": 1
+    },
+    {
+      "text": "保重",
+      "score": 1
+    },
+    {
+      "text": "回頭聊",
+      "score": 1
+    },
+    {
+      "text": "再見",
+      "score": 1
+    },
+    {
+      "text": "下次見",
+      "score": 1
+    },
+    {
+      "text": "期待與你再次交流",
+      "score": 1
+    },
+    {
+      "text": "祝你一切順利",
+      "score": 1
+    },
+    {
+      "text": "你對這個有什麼看法",
+      "score": 2
+    },
+    {
+      "text": "我認為...",
+      "score": 2
+    },
+    {
+      "text": "我覺得...",
+      "score": 2
+    },
+    {
+      "text": "我的想法是...",
+      "score": 2
+    },
+    {
+      "text": "你怎麼看待這個問題",
+      "score": 2
+    },
+    {
+      "text": "這讓我想到...",
+      "score": 2
+    },
+    {
+      "text": "你可以多說一點嗎",
+      "score": 2
+    },
+    {
+      "text": "我很想知道更多細節",
+      "score": 2
+    },
+    {
+      "text": "這是一個值得思考的問題",
+      "score": 2
+    },
+    {
+      "text": "我不太確定我是否同意",
+      "score": 2
+    },
+    {
+      "text": "我有一個不同的觀點",
+      "score": 2
+    },
+    {
+      "text": "這讓我很驚訝",
+      "score": 2
+    },
+    {
+      "text": "我從來沒有這樣想過",
+      "score": 2
+    },
+    {
+      "text": "這是一個很有啟發性的對話",
+      "score": 2
+    },
+    {
+      "text": "我學習到了很多",
+      "score": 2
+    },
+    {
+      "text": "太棒了！",
+      "score": 3
+    },
+    {
+      "text": "哇，真的嗎！",
+      "score": 3
+    },
+    {
+      "text": "這簡直太神奇了！",
+      "score": 3
+    },
+    {
+      "text": "我完全被震撼到了！",
+      "score": 3
+    },
+    {
+      "text": "我從來沒聽過這麼精彩的內容！",
+      "score": 3
+    },
+    {
+      "text": "這是我聽過最有趣的事！",
+      "score": 3
+    },
+    {
+      "text": "我超級喜歡！",
+      "score": 3
+    },
+    {
+      "text": "這真的讓我超級開心！",
+      "score": 3
+    },
+    {
+      "text": "你說得太對了！",
+      "score": 3
+    },
+    {
+      "text": "我完全贊同你的觀點！",
+      "score": 3
+    },
+    {
+      "text": "這簡直是神來一筆！",
+      "score": 3
+    },
+    {
+      "text": "我忍不住笑了出來！",
+      "score": 3
+    },
+    {
+      "text": "這簡直是太好笑了！",
+      "score": 3
+    },
+    {
+      "text": "我興奮到不行！",
+      "score": 3
+    },
+    {
+      "text": "這真是太棒了，我完全同意！",
+      "score": 3
+    }
+  ],
+  "english": [
+    {
+      "text": "Hello there!",
+      "score": 1
+    },
+    {
+      "text": "What are you talking about?",
+      "score": 0
+    },
+    {
+      "text": "I think this topic is interesting",
+      "score": 2
+    },
+    {
+      "text": "Hahahahaha",
+      "score": 3
+    },
+    {
+      "text": "I'm feeling great today",
+      "score": 1
+    },
+    {
+      "text": "Hey",
+      "score": 0
+    },
+    {
+      "text": "Hello",
+      "score": 0
+    },
+    {
+      "text": "Oh",
+      "score": 0
+    },
+    {
+      "text": "Huh",
+      "score": 0
+    },
+    {
+      "text": "Eh",
+      "score": 0
+    },
+    {
+      "text": "Uhm",
+      "score": 0
+    },
+    {
+      "text": "Yeah",
+      "score": 0
+    },
+    {
+      "text": "Right",
+      "score": 0
+    },
+    {
+      "text": "Okay",
+      "score": 0
+    },
+    {
+      "text": "No",
+      "score": 0
+    },
+    {
+      "text": "Nope",
+      "score": 0
+    },
+    {
+      "text": "Yeah, I guess",
+      "score": 0
+    },
+    {
+      "text": "Whatever",
+      "score": 0
+    },
+    {
+      "text": "Haha",
+      "score": 0
+    },
+    {
+      "text": "Hahaha",
+      "score": 0
+    },
+    {
+      "text": "Hahahahaha",
+      "score": 0
+    },
+    {
+      "text": "Hahahahahaha",
+      "score": 0
+    },
+    {
+      "text": "Hahahahahahaha",
+      "score": 0
+    },
+    {
+      "text": "What do you mean?",
+      "score": 0
+    },
+    {
+      "text": "Just a sec",
+      "score": 0
+    },
+    {
+      "text": "Let me see",
+      "score": 0
+    },
+    {
+      "text": "What did you say?",
+      "score": 0
+    },
+    {
+      "text": "Nothing",
+      "score": 0
+    },
+    {
+      "text": "Not really",
+      "score": 0
+    },
+    {
+      "text": "True",
+      "score": 0
+    },
+    {
+      "text": "Yup",
+      "score": 0
+    },
+    {
+      "text": "Alright",
+      "score": 0
+    },
+    {
+      "text": "Maybe later",
+      "score": 0
+    },
+    {
+      "text": "Sure",
+      "score": 0
+    },
+    {
+      "text": "Right on",
+      "score": 0
+    },
+    {
+      "text": "Yeah, I know",
+      "score": 0
+    },
+    {
+      "text": "I don't know either",
+      "score": 0
+    },
+    {
+      "text": "What do you think?",
+      "score": 0
+    },
+    {
+      "text": "That's it",
+      "score": 0
+    },
+    {
+      "text": "Not much",
+      "score": 0
+    },
+    {
+      "text": "Uhm hmm",
+      "score": 0
+    },
+    {
+      "text": "Uh huh",
+      "score": 0
+    },
+    {
+      "text": "Hehe",
+      "score": 0
+    },
+    {
+      "text": "Okay, cool",
+      "score": 0
+    },
+    {
+      "text": "Yep",
+      "score": 0
+    },
+    {
+      "text": "Adios",
+      "score": 0
+    },
+    {
+      "text": "Bye",
+      "score": 0
+    },
+    {
+      "text": "Good night",
+      "score": 0
+    },
+    {
+      "text": "Good morning",
+      "score": 0
+    },
+    {
+      "text": "Good afternoon",
+      "score": 0
+    },
+    {
+      "text": "Take care",
+      "score": 0
+    },
+    {
+      "text": "Are you busy?",
+      "score": 0
+    },
+    {
+      "text": "What's wrong?",
+      "score": 0
+    },
+    {
+      "text": "What's up?",
+      "score": 0
+    },
+    {
+      "text": "Go on",
+      "score": 0
+    },
+    {
+      "text": "Ready?",
+      "score": 0
+    },
+    {
+      "text": "It's okay",
+      "score": 0
+    },
+    {
+      "text": "Hi",
+      "score": 1
+    },
+    {
+      "text": "Good morning",
+      "score": 1
+    },
+    {
+      "text": "Good night",
+      "score": 1
+    },
+    {
+      "text": "How are you doing?",
+      "score": 1
+    },
+    {
+      "text": "How have you been?",
+      "score": 1
+    },
+    {
+      "text": "The weather is nice today",
+      "score": 1
+    },
+    {
+      "text": "Have a great weekend",
+      "score": 1
+    },
+    {
+      "text": "Happy New Year",
+      "score": 1
+    },
+    {
+      "text": "Happy birthday",
+      "score": 1
+    },
+    {
+      "text": "Thanks for your hard work",
+      "score": 1
+    },
+    {
+      "text": "I'm good, thanks",
+      "score": 1
+    },
+    {
+      "text": "Everything's fine",
+      "score": 1
+    },
+    {
+      "text": "I think so too",
+      "score": 1
+    },
+    {
+      "text": "That sounds great",
+      "score": 1
+    },
+    {
+      "text": "That's a good idea",
+      "score": 1
+    },
+    {
+      "text": "I agree",
+      "score": 1
+    },
+    {
+      "text": "No problem",
+      "score": 1
+    },
+    {
+      "text": "That works",
+      "score": 1
+    },
+    {
+      "text": "Of course",
+      "score": 1
+    },
+    {
+      "text": "I'd be happy to",
+      "score": 1
+    },
+    {
+      "text": "That's interesting",
+      "score": 1
+    },
+    {
+      "text": "That makes a lot of sense",
+      "score": 1
+    },
+    {
+      "text": "I see",
+      "score": 1
+    },
+    {
+      "text": "Thanks for sharing",
+      "score": 1
+    },
+    {
+      "text": "I'm looking forward to it",
+      "score": 1
+    },
+    {
+      "text": "Have a wonderful day",
+      "score": 1
+    },
+    {
+      "text": "Keep it up",
+      "score": 1
+    },
+    {
+      "text": "Take care",
+      "score": 1
+    },
+    {
+      "text": "Talk to you later",
+      "score": 1
+    },
+    {
+      "text": "Goodbye",
+      "score": 1
+    },
+    {
+      "text": "See you next time",
+      "score": 1
+    },
+    {
+      "text": "I hope to talk to you again",
+      "score": 1
+    },
+    {
+      "text": "I wish you all the best",
+      "score": 1
+    },
+    {
+      "text": "What's your take on this?",
+      "score": 2
+    },
+    {
+      "text": "In my opinion...",
+      "score": 2
+    },
+    {
+      "text": "I feel that...",
+      "score": 2
+    },
+    {
+      "text": "My thought is...",
+      "score": 2
+    },
+    {
+      "text": "How do you feel about this issue?",
+      "score": 2
+    },
+    {
+      "text": "That reminds me of...",
+      "score": 2
+    },
+    {
+      "text": "Could you elaborate a bit?",
+      "score": 2
+    },
+    {
+      "text": "I'd love to know more details",
+      "score": 2
+    },
+    {
+      "text": "That's something worth thinking about",
+      "score": 2
+    },
+    {
+      "text": "I'm not sure if I agree",
+      "score": 2
+    },
+    {
+      "text": "I have a different perspective",
+      "score": 2
+    },
+    {
+      "text": "That really surprises me",
+      "score": 2
+    },
+    {
+      "text": "I've never thought of it that way",
+      "score": 2
+    },
+    {
+      "text": "That's a very insightful conversation",
+      "score": 2
+    },
+    {
+      "text": "I learned a lot",
+      "score": 2
+    },
+    {
+      "text": "That's amazing!",
+      "score": 3
+    },
+    {
+      "text": "Wow, really?!",
+      "score": 3
+    },
+    {
+      "text": "That's just incredible!",
+      "score": 3
+    },
+    {
+      "text": "I'm completely blown away!",
+      "score": 3
+    },
+    {
+      "text": "That's the most brilliant thing I've ever heard!",
+      "score": 3
+    },
+    {
+      "text": "This is so exciting!",
+      "score": 3
+    },
+    {
+      "text": "I love this so much!",
+      "score": 3
+    },
+    {
+      "text": "This just made my day!",
+      "score": 3
+    },
+    {
+      "text": "You're absolutely right!",
+      "score": 3
+    },
+    {
+      "text": "I couldn't agree more!",
+      "score": 3
+    },
+    {
+      "text": "That's genius!",
+      "score": 3
+    },
+    {
+      "text": "I can't stop laughing!",
+      "score": 3
+    },
+    {
+      "text": "That's hilarious!",
+      "score": 3
+    },
+    {
+      "text": "I'm so excited!",
+      "score": 3
+    },
+    {
+      "text": "This is fantastic, I totally agree!",
+      "score": 3
+    }
+  ]
+}

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>中英文 AI 聊天 + 攝像頭分析</title>
+<style>
+body { font-family:"Noto Sans TC",sans-serif; background:#111; color:#fff; padding:20px; }
+#chat { height:300px; overflow-y:auto; border:1px solid #444; padding:10px; margin-bottom:10px; }
+.user { color:#6cf; margin-bottom:5px; }
+.ai { color:#fc6; margin-bottom:5px; }
+.think { color:#aaa; font-size:12px; margin-bottom:5px; }
+input, button { padding:5px; font-size:16px; margin:2px 0; }
+video { width:200px; height:150px; border:1px solid #444; display:block; margin-bottom:10px; }
+canvas { display:none; }
+button { margin-left:5px; }
+</style>
+</head>
+<body>
+
+<h2>中英文 AI 聊天 + 攝像頭分析</h2>
+
+<video id="video" autoplay></video>
+<canvas id="canvas"></canvas>
+
+<div id="chat"></div>
+<input type="text" id="input" placeholder="輸入文字...">
+<button id="sendBtn">送出</button>
+<button id="clearMemoryBtn">清除記憶</button>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+let corpusCN=[], corpusEN=[];
+let chain = JSON.parse(localStorage.getItem("chain") || "{}");
+let lastResponse="";
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+const chat=document.getElementById("chat");
+let history=[];
+const HISTORY_LIMIT=5;
+let responseScores={};
+
+// ===== 攝像頭 =====
+const video=document.getElementById("video");
+navigator.mediaDevices.getUserMedia({video:true,audio:false})
+.then(stream=>{ video.srcObject=stream; })
+.catch(err=>console.error("無法取得攝像頭",err));
+
+// ===== 載入詞庫 JSON =====
+fetch("corpus.json")
+  .then(res=>res.json())
+  .then(data=>{
+    corpusCN=data.chinese||[];
+    corpusEN=data.english||[];
+    console.log("詞庫載入完成:", corpusCN.length, corpusEN.length);
+  })
+  .catch(err=>console.error("載入詞庫失敗", err));
+
+// ===== 核心函數 =====
+function tokenize(sentence){ if(!sentence) return []; return sentence.split(""); }
+function selectCorpus(input){
+  if(/[^\x00-\x7F]/.test(input)) return corpusCN;
+  else return corpusEN;
+}
+function extractKeywords(sentence){ return tokenize(sentence||""); }
+function addToHistory(who,text){ history.push({who,text}); if(history.length>HISTORY_LIMIT*2) history.shift(); }
+function learn(sentence){ if(!sentence) return; let tokens=tokenize(sentence); for(let i=0;i<tokens.length-1;i++){ let k=tokens[i]; if(!chain[k]) chain[k]=[]; chain[k].push(tokens[i+1]); } localStorage.setItem("chain",JSON.stringify(chain)); }
+function adjustScore(sentence, delta){ if(!responseScores[sentence]) responseScores[sentence]=0; responseScores[sentence]+=delta; }
+
+function scoreSentence(sentence,keywords,input){
+  if(!sentence) return -100;
+  let tokens=tokenize(sentence),score=0;
+  tokens.forEach(t=>{ if(keywords.includes(t)) score+=3; });
+  for(let i=0;i<tokens.length-1;i++){ let k=tokens[i],n=tokens[i+1]; if(chain[k]&&chain[k].includes(n)) score+=1; }
+  if(sentence===input) score-=10;
+  if(sentence===lastResponse) score-=5;
+  if(sentence.length<2) score-=5;
+  if(responseScores[sentence]) score+=responseScores[sentence]*2;
+  return score;
+}
+
+// 攝像頭簡單分析
+function analyzeImage(){
+  if(!video.videoWidth || !video.videoHeight) return "gb(0,0,0)";
+  canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  let data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  let r=0,g=0,b=0,count=0;
+  for(let i=0;i<data.length;i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; count++; }
+  r=Math.round(r/count); g=Math.round(g/count); b=Math.round(b/count);
+  return `gb(${g},${b},${r})`;
+}
+
+// 生成候選句
+function generateCandidate(keywords,input){
+  let corpus = selectCorpus(input);
+
+  if(/[^\x00-\x7F]/.test(input)){
+    corpus = corpus.filter(w => /[^\x00-\x7F]/.test(w));
+  } else {
+    corpus = corpus.filter(w => /^[\x00-\x7F\s]+$/.test(w));
+  }
+
+  let start = keywords[Math.floor(Math.random()*keywords.length)] || corpus[Math.floor(Math.random()*corpus.length)];
+  let res = [start];
+
+  for(let i=0;i<10;i++){
+    let prev=res[res.length-1]; if(!prev) break;
+    let nextList = chain[prev];
+    let filtered = nextList ? nextList.filter(w=>w && w.trim()!=="") : [];
+    if(filtered.length>0) res.push(filtered[Math.floor(Math.random()*filtered.length)]);
+    else break;
+  }
+
+  let sentence = res.join("");
+  if(/[^\x00-\x7F]/.test(input)){
+    sentence = sentence.replace(/[^\x00-\x7F]/g,"");
+    if(!sentence) sentence = corpus[Math.floor(Math.random()*corpus.length)];
+  } else {
+    sentence = sentence.replace(/[^\x00-\x7F]/g,"");
+    if(!sentence) sentence = corpus[Math.floor(Math.random()*corpus.length)];
+  }
+
+  return sentence;
+}
+
+// 生成回應
+function generateResponse(input){
+  if(!input) return /[^\x00-\x7F]/.test(input) ? "嗚嘿～你在講什麼呀" : "Hmm, what do you mean?";
+
+  addToHistory("user",input);
+  let imgDesc = analyzeImage();
+  let keywords = extractKeywords(input);
+  history.forEach(h=>{ if(h.text) keywords.push(...extractKeywords(h.text)); });
+  keywords.push(imgDesc);
+
+  let candidates=[];
+  for(let i=0;i<10;i++) candidates.push(generateCandidate(keywords,input));
+  candidates.push(selectCorpus(input)[Math.floor(Math.random()*selectCorpus(input).length)]);
+
+  let scored=candidates.map(c=>({text:c,score:scoreSentence(c,keywords,input)}));
+  scored.sort((a,b)=>b.score-a.score);
+
+  let response=scored[0].score<5 ? 
+      (/[^\x00-\x7F]/.test(input) ? "嗚嘿～你在講什麼呀" : "Wu hei~ What are you talking about?") 
+      : scored[0].text;
+
+  addToHistory("ai",response);
+
+  const div=document.createElement("div");
+  div.className="think";
+  div.textContent="AI思考: "+scored.slice(0,5).map(s=>`${s.text}(${s.score})`).join(", ");
+  chat.appendChild(div);
+
+  return response;
+}
+
+// 顯示訊息
+function appendMessage(who,text){
+  const div=document.createElement("div");
+  div.className=who==="user"?"user":"ai";
+  div.textContent=(who==="user"?"你: ":"AI: ")+text;
+
+  if(who==="ai"){
+    const btnGood=document.createElement("button");
+    btnGood.textContent="👍";
+    btnGood.onclick=()=>{ adjustScore(text,1); btnGood.disabled=true; btnBad.disabled=true; };
+
+    const btnBad=document.createElement("button");
+    btnBad.textContent="👎";
+    btnBad.onclick=()=>{ adjustScore(text,-1); btnGood.disabled=true; btnBad.disabled=true; };
+
+    div.appendChild(btnGood);
+    div.appendChild(btnBad);
+  }
+
+  chat.appendChild(div);
+  div.scrollIntoView({behavior:"smooth"});
+  lastResponse=who==="ai"?text:lastResponse;
+}
+
+// ===== 事件綁定 =====
+document.getElementById("sendBtn").addEventListener("click",()=>{
+  const input=document.getElementById("input").value;
+  if(!input) return;
+  appendMessage("user",input);
+  document.getElementById("input").value="";
+  const response=generateResponse(input);
+  appendMessage("ai",response);
+  learn(input);
+});
+
+document.getElementById("clearMemoryBtn").addEventListener("click",()=>{
+  chain = {};
+  history = [];
+  responseScores = {};
+  localStorage.removeItem("chain");
+  alert("記憶已清除");
+});
+
+});
+</script>
+</body>
+</html>
