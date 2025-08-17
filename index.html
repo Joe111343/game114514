@@ -29,8 +29,6 @@ button { margin-left:5px; }
 <button id="clearMemoryBtn">清除記憶</button>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-
 let corpusCN=[], corpusEN=[];
 let chain = JSON.parse(localStorage.getItem("chain") || "{}");
 let lastResponse="";
@@ -58,15 +56,38 @@ fetch("corpus.json")
   .catch(err=>console.error("載入詞庫失敗", err));
 
 // ===== 核心函數 =====
-function tokenize(sentence){ if(!sentence) return []; return sentence.split(""); }
+function tokenize(sentence){
+  if(typeof sentence !== "string") return [];
+  return sentence.split("");
+}
+
 function selectCorpus(input){
   if(/[^\x00-\x7F]/.test(input)) return corpusCN;
   else return corpusEN;
 }
+
 function extractKeywords(sentence){ return tokenize(sentence||""); }
-function addToHistory(who,text){ history.push({who,text}); if(history.length>HISTORY_LIMIT*2) history.shift(); }
-function learn(sentence){ if(!sentence) return; let tokens=tokenize(sentence); for(let i=0;i<tokens.length-1;i++){ let k=tokens[i]; if(!chain[k]) chain[k]=[]; chain[k].push(tokens[i+1]); } localStorage.setItem("chain",JSON.stringify(chain)); }
-function adjustScore(sentence, delta){ if(!responseScores[sentence]) responseScores[sentence]=0; responseScores[sentence]+=delta; }
+
+function addToHistory(who,text){ 
+  history.push({who,text}); 
+  if(history.length>HISTORY_LIMIT*2) history.shift(); 
+}
+
+function learn(sentence){ 
+  if(typeof sentence !== "string") return; 
+  let tokens=tokenize(sentence); 
+  for(let i=0;i<tokens.length-1;i++){ 
+    let k=tokens[i]; 
+    if(!chain[k]) chain[k]=[]; 
+    chain[k].push(tokens[i+1]); 
+  } 
+  localStorage.setItem("chain",JSON.stringify(chain)); 
+}
+
+function adjustScore(sentence, delta){ 
+  if(!responseScores[sentence]) responseScores[sentence]=0; 
+  responseScores[sentence]+=delta; 
+}
 
 function scoreSentence(sentence,keywords,input){
   if(!sentence) return -100;
@@ -95,7 +116,6 @@ function analyzeImage(){
 // 生成候選句
 function generateCandidate(keywords,input){
   let corpus = selectCorpus(input);
-
   if(/[^\x00-\x7F]/.test(input)){
     corpus = corpus.filter(w => /[^\x00-\x7F]/.test(w));
   } else {
@@ -114,15 +134,22 @@ function generateCandidate(keywords,input){
   }
 
   let sentence = res.join("");
-  if(/[^\x00-\x7F]/.test(input)){
-    sentence = sentence.replace(/[^\x00-\x7F]/g,"");
-    if(!sentence) sentence = corpus[Math.floor(Math.random()*corpus.length)];
-  } else {
-    sentence = sentence.replace(/[^\x00-\x7F]/g,"");
-    if(!sentence) sentence = corpus[Math.floor(Math.random()*corpus.length)];
-  }
-
+  if(!sentence) sentence = corpus[Math.floor(Math.random()*corpus.length)];
   return sentence;
+}
+
+// 打字機效果
+function typeWriterEffect(text, container, callback){
+  let i=0;
+  container.textContent="";
+  function type(){
+    if(i<text.length){
+      container.textContent += text[i];
+      i++;
+      setTimeout(type,240);
+    } else if(callback) callback();
+  }
+  type();
 }
 
 // 生成回應
@@ -156,13 +183,17 @@ function generateResponse(input){
   return response;
 }
 
-// 顯示訊息
+// 顯示訊息 (含打字機效果)
 function appendMessage(who,text){
   const div=document.createElement("div");
   div.className=who==="user"?"user":"ai";
-  div.textContent=(who==="user"?"你: ":"AI: ")+text;
+  chat.appendChild(div);
 
   if(who==="ai"){
+    const textNode=document.createElement("span");
+    div.appendChild(textNode);
+    typeWriterEffect(text, textNode);
+
     const btnGood=document.createElement("button");
     btnGood.textContent="👍";
     btnGood.onclick=()=>{ adjustScore(text,1); btnGood.disabled=true; btnBad.disabled=true; };
@@ -173,14 +204,15 @@ function appendMessage(who,text){
 
     div.appendChild(btnGood);
     div.appendChild(btnBad);
+  } else {
+    div.textContent=(who==="user"?"你: ":"AI: ")+text;
   }
 
-  chat.appendChild(div);
   div.scrollIntoView({behavior:"smooth"});
   lastResponse=who==="ai"?text:lastResponse;
 }
 
-// ===== 事件綁定 =====
+// ===== 事件 =====
 document.getElementById("sendBtn").addEventListener("click",()=>{
   const input=document.getElementById("input").value;
   if(!input) return;
@@ -191,14 +223,14 @@ document.getElementById("sendBtn").addEventListener("click",()=>{
   learn(input);
 });
 
+// ===== 清除記憶 =====
 document.getElementById("clearMemoryBtn").addEventListener("click",()=>{
-  chain = {};
-  history = [];
-  responseScores = {};
+  chain={};
+  history=[];
+  responseScores={};
   localStorage.removeItem("chain");
-  alert("記憶已清除");
-});
-
+  chat.innerHTML="";
+  alert("記憶已清除！");
 });
 </script>
 </body>
